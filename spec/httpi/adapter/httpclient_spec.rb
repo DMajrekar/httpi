@@ -154,6 +154,31 @@ describe HTTPI::Adapter::HTTPClient do
         lambda { adapter.get(ssl_auth_request)  }.should_not raise_error
       end
     end
+
+    context "(for SSL client auth with a verify mode of :none with certs provided)" do
+      let(:ssl_auth_request) do
+        basic_request do |request|
+          request.auth.ssl.verify_mode = :none
+          request.auth.ssl.cert_key_file = "spec/fixtures/client_key.pem"
+          request.auth.ssl.cert_file = "spec/fixtures/client_cert.pem"
+        end
+      end
+
+      it "client_cert, client_key and verify_mode should be set" do
+        ssl_config.expects(:client_cert=).with(ssl_auth_request.auth.ssl.cert)
+        ssl_config.expects(:client_key=).with(ssl_auth_request.auth.ssl.cert_key)
+        ssl_config.expects(:verify_mode=).with(ssl_auth_request.auth.ssl.openssl_verify_mode)
+
+        adapter.get(ssl_auth_request)
+      end
+
+      it "should set the client_ca if specified" do
+        ssl_auth_request.auth.ssl.ca_cert_file = "spec/fixtures/client_cert.pem"
+        ssl_config.expects(:client_ca=).with(ssl_auth_request.auth.ssl.ca_cert)
+
+        adapter.get(ssl_auth_request)
+      end
+    end
   end
 
   def http_message(body = Fixture.xml)
